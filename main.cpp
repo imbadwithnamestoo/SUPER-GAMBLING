@@ -9,6 +9,7 @@
 #include <cmath>
 #include <algorithm>
 #include <limits>
+#include <iomanip>
 
 #define wait(x) std::this_thread::sleep_for(std::chrono::milliseconds(x))
 
@@ -18,7 +19,7 @@
     #include <termios.h>
     #include <unistd.h>
     #include <stdio.h>
-    int _getch() { // stole this code btw
+    int _getch() {
         struct termios oldt, newt;
         int ch;
         tcgetattr(STDIN_FILENO, &oldt);
@@ -52,6 +53,34 @@ int totalRewardPaid = 0;
 int luckyCharmOwned = 0;
 int doubleDownOwned = 0;
 
+// --- Shop Items ---
+int oracleEyeOwned = 0;
+int streakGuardOwned = 0;
+int streakGuardUses = 0;
+int goldenThreadOwned = 0;
+int blindfoldOwned = 0;
+
+// --- Tracking Stats ---
+int totalPointsLost = 0;
+int biggestSingleLoss = 0;
+int totalGuessesMade = 0;
+
+// --- Settings & Themes ---
+int textDelayActive = 1;
+int currentTheme = 0; 
+int defaultDifficulty = 2; 
+
+std::string T_TITLE = "\033[1;37m";
+std::string T_USER = "\033[32m";
+std::string T_PRICE = "\033[33m";
+std::string T_INFO = "\033[36m";
+std::string T_WIN = "\033[32m";
+std::string T_LOSS = "\033[31m";
+std::string T_ACCENT = "\033[33m";
+std::string T_SPECIAL = "\033[35m"; 
+std::string T_EXTRA = "\033[34m";   
+std::string T_RESET = "\033[0m";
+
 // --- Badges ---
 int badgeFirstWin = 0;
 int badgeHighRoller = 0;
@@ -64,11 +93,59 @@ int badgeStreakMaster = 0;
 int badgeJackpotHunter = 0;
 int badgeLegend = 0;
 int badgeCollector = 0;
+int badgeClutch = 0;
+int badgeVeteran = 0;
+int badgeUnstoppable = 0;
+int badgeBigSpender = 0;
+
 std::vector<std::string> unlockedBadges;
 
 std::string playerName;
 
 // --- Helper Functions ---
+
+void updateThemeColors() {
+    if (currentTheme == 0) {
+        T_TITLE = "\033[1;37m";
+        T_USER = "\033[32m";
+        T_PRICE = "\033[33m";
+        T_INFO = "\033[36m";
+        T_WIN = "\033[32m";
+        T_LOSS = "\033[31m";
+        T_ACCENT = "\033[33m";
+        T_SPECIAL = "\033[35m";
+        T_EXTRA = "\033[34m";
+    }
+    else if (currentTheme == 1) {
+        T_TITLE = "\033[1;36m";
+        T_USER = "\033[35m";
+        T_PRICE = "\033[33m";
+        T_INFO = "\033[1;37m";
+        T_WIN = "\033[36m";
+        T_LOSS = "\033[35m";
+        T_ACCENT = "\033[33m";
+        T_SPECIAL = "\033[1;36m";
+        T_EXTRA = "\033[35m";
+    }
+    else if (currentTheme == 2) {
+        T_TITLE = "\033[1;37m";
+        T_USER = "\033[1;37m";
+        T_PRICE = "\033[1;37m";
+        T_INFO = "\033[1;37m";
+        T_WIN = "\033[1;37m";
+        T_LOSS = "\033[1;37m";
+        T_ACCENT = "\033[1;37m";
+        T_SPECIAL = "\033[1;37m";
+        T_EXTRA = "\033[1;37m";
+    }
+}
+
+void smartWait(int ms) {
+    if (textDelayActive == 1) {
+        wait(ms);
+    }
+}
+
 int checkLives(int amount) {
 	if (amount > 0) return true;
 	else return false;
@@ -92,7 +169,7 @@ bool hasBadge(std::string badgeName) {
 void unlockBadge(std::string badgeName) {
     if (!hasBadge(badgeName)) {
         unlockedBadges.push_back(badgeName);
-        std::cout << "\033[33mBADGE UNLOCKED: \033[0m" << badgeName << std::endl;
+        std::cout << T_ACCENT << "BADGE UNLOCKED: " << T_RESET << badgeName << std::endl;
     }
 }
 
@@ -150,7 +227,20 @@ void saveGame() {
         outFile << luckyCharmOwned << std::endl;
         outFile << doubleDownOwned << std::endl;
 
-        // --- Badges ---
+        outFile << oracleEyeOwned << std::endl;
+        outFile << streakGuardOwned << std::endl;
+        outFile << streakGuardUses << std::endl;
+        outFile << goldenThreadOwned << std::endl;
+        outFile << blindfoldOwned << std::endl;
+
+        outFile << totalPointsLost << std::endl;
+        outFile << biggestSingleLoss << std::endl;
+        outFile << totalGuessesMade << std::endl;
+
+        outFile << textDelayActive << std::endl;
+        outFile << currentTheme << std::endl;
+        outFile << defaultDifficulty << std::endl;
+
         outFile << badgeFirstWin << std::endl;
         outFile << badgeHighRoller << std::endl;
         outFile << badgeMillionaire << std::endl;
@@ -162,6 +252,10 @@ void saveGame() {
         outFile << badgeJackpotHunter << std::endl;
         outFile << badgeLegend << std::endl;
         outFile << badgeCollector << std::endl;
+        outFile << badgeClutch << std::endl;
+        outFile << badgeVeteran << std::endl;
+        outFile << badgeUnstoppable << std::endl;
+        outFile << badgeBigSpender << std::endl;
 
         outFile.close();
     }
@@ -201,6 +295,16 @@ void checkBadges() {
     if (totalShopPurchases >= 8) {
         markBadgeAsUnlocked(badgeCollector, "Collector");
     }
+    if (roundsPlayed >= 50) {
+        markBadgeAsUnlocked(badgeVeteran, "Veteran");
+    }
+    if (bestStreak >= 10) {
+        markBadgeAsUnlocked(badgeUnstoppable, "Unstoppable");
+    }
+    if (highestSingleWager >= 5000) {
+        markBadgeAsUnlocked(badgeBigSpender, "Big Spender");
+    }
+
     if (totalLoss >= 10) {
         unlockBadge("Bad Luck");
     }
@@ -236,6 +340,20 @@ void loadGame() {
                >> luckyCharmOwned
                >> doubleDownOwned;
 
+        inFile >> oracleEyeOwned
+               >> streakGuardOwned
+               >> streakGuardUses
+               >> goldenThreadOwned
+               >> blindfoldOwned;
+
+        inFile >> totalPointsLost
+               >> biggestSingleLoss
+               >> totalGuessesMade;
+
+        inFile >> textDelayActive;
+        inFile >> currentTheme;
+        inFile >> defaultDifficulty;
+
         inFile >> badgeFirstWin
                >> badgeHighRoller
                >> badgeMillionaire
@@ -246,9 +364,98 @@ void loadGame() {
                >> badgeStreakMaster
                >> badgeJackpotHunter
                >> badgeLegend
-               >> badgeCollector;
+               >> badgeCollector
+               >> badgeClutch
+               >> badgeVeteran
+               >> badgeUnstoppable
+               >> badgeBigSpender;
 
         inFile.close();
+        updateThemeColors();
+    }
+}
+
+void openSettings() {
+    int selected = 1;
+    bool inSettings = true;
+
+    while (inSettings) {
+        clear();
+        resetCursor();
+        std::cout << "------------------------------------" << std::endl;
+        std::cout << T_TITLE << "SETTINGS" << T_RESET << " // " << T_USER << playerName << T_RESET << std::endl;
+        std::cout << "------------------------------------" << std::endl;
+        std::cout << T_WIN << "[" << (selected == 1 ? "*" : "1") << "]" << T_RESET << " Change Username" << std::endl;
+        std::cout << T_INFO << "[" << (selected == 2 ? "*" : "2") << "]" << T_RESET << " Text Delays: " << (textDelayActive ? T_WIN + "ON" : T_LOSS + "OFF") << T_RESET << std::endl;
+        
+        std::string themeName = "Classic";
+        if (currentTheme == 1) themeName = "Cyber";
+        if (currentTheme == 2) themeName = "Monochrome";
+        std::cout << T_PRICE << "[" << (selected == 3 ? "*" : "3") << "]" << T_RESET << " Color Theme: " << T_INFO << themeName << T_RESET << std::endl;
+
+        std::string diffName = "Normal";
+        if (defaultDifficulty == 1) diffName = "Easy";
+        if (defaultDifficulty == 3) diffName = "Hard";
+        if (defaultDifficulty == 4) diffName = "EXTREME";
+        std::cout << T_SPECIAL << "[" << (selected == 4 ? "*" : "4") << "]" << T_RESET << " Default Difficulty: " << T_INFO << diffName << T_RESET << std::endl;
+        
+        std::cout << T_LOSS << "[" << (selected == 5 ? "*" : "5") << "]" << T_RESET << " Wipe All Data" << std::endl;
+        std::cout << T_TITLE << "[" << (selected == 6 ? "*" : "6") << "]" << T_RESET << " Back to Menu" << std::endl;
+        std::cout << "------------------------------------" << std::endl;
+        std::cout << T_INFO << "Patch Version: V1.5" << T_RESET << std::endl;
+
+        int input = _getch();
+        if (input == 224 || input == 27) {
+            int arrow = _getch();
+            if (input == 27 && arrow == 91) arrow = _getch();
+
+            if (arrow == 72 || arrow == 'A') {
+                if (selected > 1) selected--;
+                else selected = 6;
+            } 
+            else if (arrow == 80 || arrow == 'B') {
+                if (selected < 6) selected++;
+                else selected = 1;
+            }
+        } 
+        else if (input == 13 || input == 10) {
+            if (selected == 1) {
+                std::cout << "Enter new username: ";
+                std::getline(std::cin >> std::ws, playerName);
+                saveGame();
+                std::cout << "Username updated!" << std::endl;
+                smartWait(1000);
+            }
+            else if (selected == 2) {
+                textDelayActive = !textDelayActive;
+                saveGame();
+            }
+            else if (selected == 3) {
+                currentTheme++;
+                if (currentTheme > 2) currentTheme = 0;
+                updateThemeColors();
+                saveGame();
+            }
+            else if (selected == 4) {
+                defaultDifficulty++;
+                if (defaultDifficulty > 4) defaultDifficulty = 1;
+                saveGame();
+            }
+            else if (selected == 5) {
+                std::cout << T_LOSS << "ARE YOU SURE? (Y/N): " << T_RESET;
+                char confirm;
+                std::cin >> confirm;
+                if (confirm == 'y' || confirm == 'Y') {
+                    remove("save.txt");
+                    std::cout << "Data wiped. Exiting game..." << std::endl;
+                    exit(0);
+                }
+                std::cin.ignore(1000, '\n');
+            }
+            else if (selected == 6) {
+                inSettings = false;
+            }
+        }
     }
 }
 
@@ -261,16 +468,22 @@ int chooseShopItem() {
         resetCursor();
         std::cout << "\033[H";
 
-        std::cout << "\033[1;37mSHOP\033[0m \033[33m//\033[0m \033[36mITEMS\033[0m \033[33m//\033[0m \033[32m" << playerName << "\033[0m" << std::endl;
         std::cout << "------------------------------------" << std::endl;
-        std::cout << "\033[32m[" << (selected == 1 ? "*" : "1") << "]\033[0m Extra Life             \033[33m$150\033[0m" << std::endl;
-        std::cout << "\033[32m[" << (selected == 2 ? "*" : "2") << "]\033[0m Gambling Insurance    \033[33m$350\033[0m" << std::endl;
-        std::cout << "\033[32m[" << (selected == 3 ? "*" : "3") << "]\033[0m High Reward           \033[33m$250\033[0m" << std::endl;
+        std::cout << T_TITLE << "SHOP" << T_RESET << " // " << T_INFO << "ITEMS" << T_RESET << " // " << T_USER << playerName << T_RESET << std::endl;
+        std::cout << "------------------------------------" << std::endl;
+        std::cout << T_WIN << "[" << (selected == 1 ? "*" : "1") << "]" << T_RESET << " Extra Life             " << T_PRICE << "$150" << T_RESET << std::endl;
+        std::cout << T_WIN << "[" << (selected == 2 ? "*" : "2") << "]" << T_RESET << " Gambling Insurance    " << T_PRICE << "$350" << T_RESET << std::endl;
+        std::cout << T_WIN << "[" << (selected == 3 ? "*" : "3") << "]" << T_RESET << " High Reward           " << T_PRICE << "$250" << T_RESET << std::endl;
         int shieldCost = 300 * (1 << safeBetShieldUses);
-        std::cout << "\033[32m[" << (selected == 4 ? "*" : "4") << "]\033[0m Safe Bet Shield      \033[33m$" << shieldCost << "\033[0m" << std::endl;
-        std::cout << "\033[33m[" << (selected == 5 ? "*" : "5") << "]\033[0m Lucky Charm           \033[33m$400\033[0m" << std::endl;
-        std::cout << "\033[35m[" << (selected == 6 ? "*" : "6") << "]\033[0m Double Down          \033[33m$500\033[0m" << std::endl;
-        std::cout << "\033[31m[" << (selected == 7 ? "*" : "7") << "]\033[0m Back to Menu" << std::endl;
+        std::cout << T_WIN << "[" << (selected == 4 ? "*" : "4") << "]" << T_RESET << " Safe Bet Shield      " << T_PRICE << "$" << shieldCost << T_RESET << std::endl;
+        std::cout << T_ACCENT << "[" << (selected == 5 ? "*" : "5") << "]" << T_RESET << " Lucky Charm           " << T_PRICE << "$400" << T_RESET << std::endl;
+        std::cout << T_SPECIAL << "[" << (selected == 6 ? "*" : "6") << "]" << T_RESET << " Double Down          " << T_PRICE << "$500" << T_RESET << std::endl;
+        std::cout << T_INFO << "[" << (selected == 7 ? "*" : "7") << "]" << T_RESET << " Oracle's Eye         " << T_PRICE << "$200" << T_RESET << std::endl;
+        int streakCost = 600 * (1 << streakGuardUses);
+        std::cout << T_EXTRA << "[" << (selected == 8 ? "*" : "8") << "]" << T_RESET << " Streak Guard         " << T_PRICE << "$" << streakCost << T_RESET << std::endl;
+        std::cout << T_ACCENT << "[" << (selected == 9 ? "*" : "9") << "]" << T_RESET << " Golden Thread         " << T_PRICE << "$5000" << T_RESET << std::endl;
+        std::cout << T_LOSS << "[" << (selected == 10? "*" : "10") << "]" << T_RESET << " The Blindfold        " << T_PRICE << "$300" << T_RESET << std::endl;
+        std::cout << T_TITLE << "[" << (selected == 11? "*" : "11") << "]" << T_RESET << " Back to Menu" << std::endl;
         std::cout << "------------------------------------" << std::endl;
         std::cout << "Use Arrows to move, Enter to select" << std::endl;
 
@@ -281,10 +494,10 @@ int chooseShopItem() {
 
             if (arrow == 72 || arrow == 'A') {
                 if (selected > 1) selected--;
-                else selected = 7;
+                else selected = 11;
             } 
             else if (arrow == 80 || arrow == 'B') {
-                if (selected < 7) selected++;
+                if (selected < 11) selected++;
                 else selected = 1;
             }
         } 
@@ -300,58 +513,35 @@ void viewBadges() {
     checkBadges();
     clear();
 
-    int totalBadges = 11;
-    int unlockedCount = badgeFirstWin + badgeHighRoller + badgeMillionaire + badgeExtremeMaster + badgeShopaholic + badgeLuckyFirstTry + badgeBillionaire + badgeStreakMaster + badgeJackpotHunter + badgeLegend + badgeCollector;
-
-    std::cout << "\033[1;37mBADGES\033[0m \033[33m//\033[0m \033[32m" << playerName << "\033[0m" << std::endl;
-    std::cout << "------------------------------------" << std::endl;
-
-    std::cout << (badgeFirstWin ? "\033[32m[✓]\033[0m " : "\033[31m[ ]\033[0m ")
-              << "Winner" << std::endl;
-    std::cout << "     Win 3 rounds total." << std::endl << std::endl;
-
-    std::cout << (badgeHighRoller ? "\033[32m[✓]\033[0m " : "\033[31m[ ]\033[0m ")
-              << "High Roller" << std::endl;
-    std::cout << "     Wager 1000 points in one game." << std::endl << std::endl;
-
-    std::cout << (badgeMillionaire ? "\033[32m[✓]\033[0m " : "\033[31m[ ]\033[0m ")
-              << "Millionaire" << std::endl;
-    std::cout << "     Reach 2500 points." << std::endl << std::endl;
-
-    std::cout << (badgeExtremeMaster ? "\033[32m[✓]\033[0m " : "\033[31m[ ]\033[0m ")
-              << "Extreme Master" << std::endl;
-    std::cout << "     Beat Extreme difficulty 2 times." << std::endl << std::endl;
-
-    std::cout << (badgeShopaholic ? "\033[32m[✓]\033[0m " : "\033[31m[ ]\033[0m ")
-              << "Shopaholic" << std::endl;
-    std::cout << "     Buy 3 shop items." << std::endl << std::endl;
-
-    std::cout << (badgeLuckyFirstTry ? "\033[32m[✓]\033[0m " : "\033[31m[ ]\033[0m ")
-              << "Lucky First Try" << std::endl;
-    std::cout << "     Guess correctly on your first try." << std::endl << std::endl;
-
-    std::cout << (badgeBillionaire ? "\033[32m[✓]\033[0m " : "\033[31m[ ]\033[0m ")
-              << "Billionaire" << std::endl;
-    std::cout << "     Reach 15,000 points." << std::endl << std::endl;
-
-    std::cout << (badgeStreakMaster ? "\033[32m[✓]\033[0m " : "\033[31m[ ]\033[0m ")
-              << "Streak Master" << std::endl;
-    std::cout << "     Reach a streak of 5 wins." << std::endl << std::endl;
-
-    std::cout << (badgeJackpotHunter ? "\033[32m[✓]\033[0m " : "\033[31m[ ]\033[0m ")
-              << "Jackpot Hunter" << std::endl;
-    std::cout << "     Trigger 3 jackpots." << std::endl << std::endl;
-
-    std::cout << (badgeLegend ? "\033[32m[✓]\033[0m " : "\033[31m[ ]\033[0m ")
-              << "Legend" << std::endl;
-    std::cout << "     Win 15 rounds total." << std::endl << std::endl;
-
-    std::cout << (badgeCollector ? "\033[32m[✓]\033[0m " : "\033[31m[ ]\033[0m ")
-              << "Collector" << std::endl;
-    std::cout << "     Purchase 8 shop items." << std::endl << std::endl;
+    int totalBadges = 15;
+    int unlockedCount = badgeFirstWin + badgeHighRoller + badgeMillionaire + badgeExtremeMaster + badgeShopaholic + badgeLuckyFirstTry + badgeBillionaire + badgeStreakMaster + badgeJackpotHunter + badgeLegend + badgeCollector + badgeClutch + badgeVeteran + badgeUnstoppable + badgeBigSpender;
 
     std::cout << "------------------------------------" << std::endl;
-    std::cout << "Unlocked: \033[33m" << unlockedCount << "/" << totalBadges << "\033[0m" << std::endl;
+    std::cout << T_TITLE << "BADGES" << T_RESET << " // " << T_USER << playerName << T_RESET << std::endl;
+    std::cout << "------------------------------------" << std::endl;
+
+    auto displayBadge = [&](int flag, std::string name, std::string desc) {
+        std::cout << (flag ? T_WIN + "[x]" + T_RESET + " " : T_LOSS + "[ ]" + T_RESET + " ") << name << "\n     " << desc << "\n\n";
+    };
+
+    displayBadge(badgeFirstWin, "Winner", "Win 3 rounds total.");
+    displayBadge(badgeLuckyFirstTry, "Lucky First Try", "Guess correctly on your first try.");
+    displayBadge(badgeClutch, "Clutch", "Win a round on your very last life.");
+    displayBadge(badgeStreakMaster, "Streak Master", "Reach a streak of 5 wins.");
+    displayBadge(badgeUnstoppable, "Unstoppable", "Reach a streak of 10 wins.");
+    displayBadge(badgeHighRoller, "High Roller", "Wager 1000 points in one game.");
+    displayBadge(badgeBigSpender, "Big Spender", "Wager 5000 points in one game.");
+    displayBadge(badgeMillionaire, "Rich Player", "Reach 2500 points.");
+    displayBadge(badgeBillionaire, "Billionaire", "Reach 15,000 points.");
+    displayBadge(badgeExtremeMaster, "Extreme Master", "Beat Extreme difficulty 2 times.");
+    displayBadge(badgeJackpotHunter, "Jackpot Hunter", "Trigger 3 jackpots.");
+    displayBadge(badgeShopaholic, "Shopaholic", "Buy 3 shop items.");
+    displayBadge(badgeCollector, "Collector", "Purchase 8 shop items.");
+    displayBadge(badgeLegend, "Legend", "Win 15 rounds total.");
+    displayBadge(badgeVeteran, "Veteran", "Play 50 rounds total.");
+
+    std::cout << "------------------------------------" << std::endl;
+    std::cout << "Unlocked: " << T_ACCENT << unlockedCount << "/" << totalBadges << T_RESET << std::endl;
     std::cout << "------------------------------------" << std::endl;
     std::cout << "Press ENTER to return ";
 
@@ -360,19 +550,20 @@ void viewBadges() {
 
 int chooseDifficulty() {
     clear();
-    int selected = 1;
+    int selected = defaultDifficulty;
     bool choiceMade = false;
 
     while (!choiceMade) {
         resetCursor();
         std::cout << "\033[H";
-        std::cout << "\033[1;37mDIFFICULTY\033[0m \033[33m//\033[0m \033[32m" << playerName << "\033[0m" << std::endl;
         std::cout << "------------------------------------" << std::endl;
-        std::cout << "\033[32m[" << (selected == 1 ? "*" : "1") << "]\033[0m Easy   (7 lives)" << std::endl;
-        std::cout << "\033[33m[" << (selected == 2 ? "*" : "2") << "]\033[0m Normal (4 lives)" << std::endl;
-        std::cout << "\033[31m[" << (selected == 3 ? "*" : "3") << "]\033[0m Hard   (3 lives)" << std::endl;
-        std::cout << "\033[35m[" << (selected == 4 ? "*" : "4") << "]\033[0m EXTREME\033[0m" << std::endl;
-        std::cout << "\033[37m[" << (selected == 5 ? "*" : "5") << "]\033[0m Exit to menu" << std::endl;
+        std::cout << T_TITLE << "DIFFICULTY" << T_RESET << " // " << T_USER << playerName << T_RESET << std::endl;
+        std::cout << "------------------------------------" << std::endl;
+        std::cout << T_WIN << "[" << (selected == 1 ? "*" : "1") << "]" << T_RESET << " Easy   (7 lives)" << std::endl;
+        std::cout << T_ACCENT << "[" << (selected == 2 ? "*" : "2") << "]" << T_RESET << " Normal (4 lives)" << std::endl;
+        std::cout << T_LOSS << "[" << (selected == 3 ? "*" : "3") << "]" << T_RESET << " Hard   (3 lives)" << std::endl;
+        std::cout << T_SPECIAL << "[" << (selected == 4 ? "*" : "4") << "]" << T_RESET << " EXTREME" << T_RESET << std::endl;
+        std::cout << T_TITLE << "[" << (selected == 5 ? "*" : "5") << "]" << T_RESET << " Exit to menu" << std::endl;
         std::cout << "------------------------------------" << std::endl;
         std::cout << "Use Arrows to move, Enter to select" << std::endl;
 
@@ -385,7 +576,7 @@ int chooseDifficulty() {
                 if (selected > 1) selected--;
                 else selected = 5;
             } 
-            else if (arrow == 80 || arrow == 'B') { // DOWN
+            else if (arrow == 80 || arrow == 'B') {
                 if (selected < 5) selected++;
                 else selected = 1;
             }
@@ -398,218 +589,316 @@ int chooseDifficulty() {
     return selected; 
 }
 
-// --- Store ---
 void openStore() {
     while (true) {
         int choice = chooseShopItem();
         char buyChoice;
 
+        if (choice == 11) {
+            return;
+        }
+
+        clear();
+        std::cout << "------------------------------------" << std::endl;
+        std::cout << T_TITLE << "SHOP" << T_RESET << " // " << T_INFO << "DESCRIPTION" << T_RESET << " // " << T_USER << playerName << T_RESET << std::endl;
+        std::cout << "------------------------------------" << std::endl;
+
         if (choice == 1) {
-            clear();
-            std::cout << "\033[1;37mSHOP\033[0m \033[33m//\033[0m \033[36mDESCRIPTION\033[0m \033[33m//\033[0m \033[32m" << playerName << "\033[0m" << std::endl;
+            std::cout << T_TITLE << "ITEM:" << T_RESET << " " << T_SPECIAL << "Extra Life" << T_RESET << std::endl; 
+            std::cout << T_TITLE << "COST:" << T_RESET << " " << T_ACCENT << "$150" << T_RESET << std::endl;
             std::cout << "------------------------------------" << std::endl;
-            std::cout << "\033[1;37mITEM:\033[0m \033[35mExtra Life\033[0m" << std::endl; 
-            std::cout << "\033[1;37mCOST:\033[0m \033[33m$150\033[0m" << std::endl;
+            std::cout << " Provides " << T_WIN << "+1 Extra Life" << T_RESET << " for your next" << std::endl;
+            std::cout << " round. This is a " << T_ACCENT << "single-use" << T_RESET << " item." << std::endl;
             std::cout << "------------------------------------" << std::endl;
-            std::cout << " Provides \033[32m+1 Extra Life\033[0m for your next" << std::endl;
-            std::cout << " round. This is a \033[33msingle-use\033[0m item." << std::endl;
-            std::cout << "------------------------------------" << std::endl;
-            std::cout << "Purchase? [\033[32mY\033[0m/\033[31mN\033[0m]: ";
+            std::cout << "Purchase? [" << T_WIN << "Y" << T_RESET << "/" << T_LOSS << "N" << T_RESET << "]: ";
             std::cin >> buyChoice;
             std::cin.ignore(1000, '\n');
             if (buyChoice == 'y' || buyChoice == 'Y') {
-                if (extraLifeOwned == 1) std::cout << "Already owned!" << std::endl;
-                else if (totalPoints >= 150) { 
+                if (extraLifeOwned == 1) {
+                    std::cout << "Already owned!" << std::endl;
+                } else if (totalPoints >= 150) { 
                     totalPoints -= 150; 
                     extraLifeOwned = 1; 
                     totalShopPurchases++;
                     checkBadges();
                     saveGame(); 
                     std::cout << "Purchased!" << std::endl; 
-                } else std::cout << "Not enough points!" << std::endl;
-                wait(1000);
+                } else {
+                    std::cout << "Not enough points!" << std::endl;
+                }
+                smartWait(1000);
             }
         } 
         else if (choice == 2) {
-            clear();
-            std::cout << "\033[1;37mSHOP\033[0m \033[33m//\033[0m \033[36mDESCRIPTION\033[0m \033[33m//\033[0m \033[32m" << playerName << "\033[0m" << std::endl;
+            std::cout << T_TITLE << "ITEM:" << T_RESET << " " << T_SPECIAL << "Gambling Insurance" << T_RESET << std::endl; 
+            std::cout << T_TITLE << "COST:" << T_RESET << " " << T_ACCENT << "$350" << T_RESET << std::endl;
             std::cout << "------------------------------------" << std::endl;
-            std::cout << "\033[1;37mITEM:\033[0m \033[35mGambling Insurance\033[0m" << std::endl; 
-            std::cout << "\033[1;37mCOST:\033[0m \033[33m$350\033[0m" << std::endl;
+            std::cout << " Reduces all wager losses by " << T_WIN << "10%" << T_RESET << "." << std::endl;
             std::cout << "------------------------------------" << std::endl;
-            std::cout << " Reduces all wager losses by \033[32m10%\033[0m." << std::endl;
-            std::cout << "------------------------------------" << std::endl;
-            std::cout << "Purchase? [\033[32mY\033[0m/\033[31mN\033[0m]: ";
+            std::cout << "Purchase? [" << T_WIN << "Y" << T_RESET << "/" << T_LOSS << "N" << T_RESET << "]: ";
             std::cin >> buyChoice;
             std::cin.ignore(1000, '\n');
             if (buyChoice == 'y' || buyChoice == 'Y') {
-                if (gamblingInsuranceOwned == 1) std::cout << "Already owned!" << std::endl;
-                else if (totalPoints >= 350) { 
+                if (gamblingInsuranceOwned == 1) {
+                    std::cout << "Already owned!" << std::endl;
+                } else if (totalPoints >= 350) { 
                     totalPoints -= 350; 
                     gamblingInsuranceOwned = 1; 
                     totalShopPurchases++;
                     checkBadges();
                     saveGame(); 
                     std::cout << "Purchased!" << std::endl; 
-                } else std::cout << "Not enough points!" << std::endl;
-                wait(1000);
+                } else {
+                    std::cout << "Not enough points!" << std::endl;
+                }
+                smartWait(1000);
             }
         } 
         else if (choice == 3) {
-            clear();
-            std::cout << "\033[1;37mSHOP\033[0m \033[33m//\033[0m \033[36mDESCRIPTION\033[0m \033[33m//\033[0m \033[32m" << playerName << "\033[0m" << std::endl;
+            std::cout << T_TITLE << "ITEM:" << T_RESET << " " << T_SPECIAL << "High Reward" << T_RESET << std::endl; 
+            std::cout << T_TITLE << "COST:" << T_RESET << " " << T_ACCENT << "$250" << T_RESET << std::endl;
             std::cout << "------------------------------------" << std::endl;
-            std::cout << "\033[1;37mITEM:\033[0m \033[35mHigh Reward\033[0m" << std::endl; 
-            std::cout << "\033[1;37mCOST:\033[0m \033[33m$250\033[0m" << std::endl;
+            std::cout << " Increases your next win by " << T_WIN << "35%" << T_RESET << "." << std::endl;
             std::cout << "------------------------------------" << std::endl;
-            std::cout << " Increases your next win by \033[32m35%\033[0m." << std::endl;
-            std::cout << "------------------------------------" << std::endl;
-            std::cout << "Purchase? [\033[32mY\033[0m/\033[31mN\033[0m]: ";
+            std::cout << "Purchase? [" << T_WIN << "Y" << T_RESET << "/" << T_LOSS << "N" << T_RESET << "]: ";
             std::cin >> buyChoice;
             std::cin.ignore(1000, '\n');
             if (buyChoice == 'y' || buyChoice == 'Y') {
-                if (highRewardOwned == 1) std::cout << "Already owned!" << std::endl;
-                else if (totalPoints >= 250) { 
+                if (highRewardOwned == 1) {
+                    std::cout << "Already owned!" << std::endl;
+                } else if (totalPoints >= 250) { 
                     totalPoints -= 250; 
                     highRewardOwned = 1; 
                     totalShopPurchases++;
                     checkBadges();
                     saveGame(); 
                     std::cout << "Purchased!" << std::endl; 
-                } else std::cout << "Not enough points!" << std::endl;
-                wait(1000);
+                } else {
+                    std::cout << "Not enough points!" << std::endl;
+                }
+                smartWait(1000);
             }
         } 
         else if (choice == 4) {
-            clear();
-            std::cout << "\033[1;37mSHOP\033[0m \033[33m//\033[0m \033[36mDESCRIPTION\033[0m \033[33m//\033[0m \033[32m" << playerName << "\033[0m" << std::endl;
-            std::cout << "------------------------------------" << std::endl;
             int shieldCost = 300 * (1 << safeBetShieldUses);
-            std::cout << "\033[1;37mITEM:\033[0m \033[35mSafe Bet Shield\033[0m" << std::endl; 
-            std::cout << "\033[1;37mCOST:\033[0m \033[33m$" << shieldCost << "\033[0m" << std::endl;
+            std::cout << T_TITLE << "ITEM:" << T_RESET << " " << T_SPECIAL << "Safe Bet Shield" << T_RESET << std::endl; 
+            std::cout << T_TITLE << "COST:" << T_RESET << " " << T_ACCENT << "$" << shieldCost << T_RESET << std::endl;
             std::cout << "------------------------------------" << std::endl;
-            std::cout << " Reduces the penalty of your next loss by \033[32m50%\033[0m." << std::endl;
+            std::cout << " Reduces the penalty of your next loss by " << T_WIN << "50%" << T_RESET << "." << std::endl;
             std::cout << "------------------------------------" << std::endl;
-            std::cout << "Purchase? [\033[32mY\033[0m/\033[31mN\033[0m]: ";
+            std::cout << "Purchase? [" << T_WIN << "Y" << T_RESET << "/" << T_LOSS << "N" << T_RESET << "]: ";
             std::cin >> buyChoice;
             std::cin.ignore(1000, '\n');
             if (buyChoice == 'y' || buyChoice == 'Y') {
-                int shieldCost = 300 * (1 << safeBetShieldUses);
-                if (safeBetShieldOwned == 1) std::cout << "Already owned!" << std::endl;
-                else if (totalPoints >= shieldCost) { 
+                if (safeBetShieldOwned == 1) {
+                    std::cout << "Already owned!" << std::endl;
+                } else if (totalPoints >= shieldCost) { 
                     totalPoints -= shieldCost; 
                     safeBetShieldOwned = 1; 
                     totalShopPurchases++;
                     checkBadges();
                     saveGame(); 
                     std::cout << "Purchased!" << std::endl; 
-                } else std::cout << "Not enough points!" << std::endl;
-                wait(1000);
+                } else {
+                    std::cout << "Not enough points!" << std::endl;
+                }
+                smartWait(1000);
             }
         }
         else if (choice == 5) {
-            clear();
-            std::cout << "\033[1;37mSHOP\033[0m \033[33m//\033[0m \033[36mDESCRIPTION\033[0m \033[33m//\033[0m \033[32m" << playerName << "\033[0m" << std::endl;
+            std::cout << T_TITLE << "ITEM:" << T_RESET << " " << T_SPECIAL << "Lucky Charm" << T_RESET << std::endl; 
+            std::cout << T_TITLE << "COST:" << T_RESET << " " << T_ACCENT << "$400" << T_RESET << std::endl;
             std::cout << "------------------------------------" << std::endl;
-            std::cout << "\033[1;37mITEM:\033[0m \033[35mLucky Charm\033[0m" << std::endl; 
-            std::cout << "\033[1;37mCOST:\033[0m \033[33m$400\033[0m" << std::endl;
+            std::cout << " Gives your next win a " << T_WIN << "10% bonus" << T_RESET << " and a " << T_WIN << "small extra jackpot chance" << T_RESET << "." << std::endl;
             std::cout << "------------------------------------" << std::endl;
-            std::cout << " Gives your next win a \033[32m10% bonus\033[0m and a \033[32msmall extra jackpot chance\033[0m." << std::endl;
-            std::cout << "------------------------------------" << std::endl;
-            std::cout << "Purchase? [\033[32mY\033[0m/\033[31mN\033[0m]: ";
+            std::cout << "Purchase? [" << T_WIN << "Y" << T_RESET << "/" << T_LOSS << "N" << T_RESET << "]: ";
             std::cin >> buyChoice;
             std::cin.ignore(1000, '\n');
             if (buyChoice == 'y' || buyChoice == 'Y') {
-                if (luckyCharmOwned == 1) std::cout << "Already owned!" << std::endl;
-                else if (totalPoints >= 400) { 
+                if (luckyCharmOwned == 1) {
+                    std::cout << "Already owned!" << std::endl;
+                } else if (totalPoints >= 400) { 
                     totalPoints -= 400; 
                     luckyCharmOwned = 1; 
                     totalShopPurchases++;
                     checkBadges();
                     saveGame(); 
                     std::cout << "Purchased!" << std::endl; 
-                } else std::cout << "Not enough points!" << std::endl;
-                wait(1000);
+                } else {
+                    std::cout << "Not enough points!" << std::endl;
+                }
+                smartWait(1000);
             }
-            continue;
         }
         else if (choice == 6) {
-            clear();
-            std::cout << "\033[1;37mSHOP\033[0m \033[33m//\033[0m \033[36mDESCRIPTION\033[0m \033[33m//\033[0m \033[32m" << playerName << "\033[0m" << std::endl;
+            std::cout << T_TITLE << "ITEM:" << T_RESET << " " << T_SPECIAL << "Double Down" << T_RESET << std::endl; 
+            std::cout << T_TITLE << "COST:" << T_RESET << " " << T_ACCENT << "$500" << T_RESET << std::endl;
             std::cout << "------------------------------------" << std::endl;
-            std::cout << "\033[1;37mITEM:\033[0m \033[35mDouble Down\033[0m" << std::endl; 
-            std::cout << "\033[1;37mCOST:\033[0m \033[33m$500\033[0m" << std::endl;
+            std::cout << " Doubles your next win reward." << std::endl;
             std::cout << "------------------------------------" << std::endl;
-            std::cout << " Doubles your next win reward and makes the next loss more forgiving." << std::endl;
-            std::cout << "------------------------------------" << std::endl;
-            std::cout << "Purchase? [\033[32mY\033[0m/\033[31mN\033[0m]: ";
+            std::cout << "Purchase? [" << T_WIN << "Y" << T_RESET << "/" << T_LOSS << "N" << T_RESET << "]: ";
             std::cin >> buyChoice;
             std::cin.ignore(1000, '\n');
             if (buyChoice == 'y' || buyChoice == 'Y') {
-                if (doubleDownOwned == 1) std::cout << "Already owned!" << std::endl;
-                else if (totalPoints >= 500) { 
+                if (doubleDownOwned == 1) {
+                    std::cout << "Already owned!" << std::endl;
+                } else if (totalPoints >= 500) { 
                     totalPoints -= 500; 
                     doubleDownOwned = 1; 
                     totalShopPurchases++;
                     checkBadges();
                     saveGame(); 
                     std::cout << "Purchased!" << std::endl; 
-                } else std::cout << "Not enough points!" << std::endl;
-                wait(1000);
+                } else {
+                    std::cout << "Not enough points!" << std::endl;
+                }
+                smartWait(1000);
             }
-            continue;
         }
         else if (choice == 7) {
-            return; 
+            std::cout << T_TITLE << "ITEM:" << T_RESET << " " << T_SPECIAL << "Oracle's Eye" << T_RESET << std::endl; 
+            std::cout << T_TITLE << "COST:" << T_RESET << " " << T_ACCENT << "$200" << T_RESET << std::endl;
+            std::cout << "------------------------------------" << std::endl;
+            std::cout << " Tells you if the secret number is EVEN or ODD at start." << std::endl;
+            std::cout << "------------------------------------" << std::endl;
+            std::cout << "Purchase? [" << T_WIN << "Y" << T_RESET << "/" << T_LOSS << "N" << T_RESET << "]: ";
+            std::cin >> buyChoice;
+            std::cin.ignore(1000, '\n');
+            if (buyChoice == 'y' || buyChoice == 'Y') {
+                if (oracleEyeOwned == 1) {
+                    std::cout << "Already owned!" << std::endl;
+                } else if (totalPoints >= 200) { 
+                    totalPoints -= 200; 
+                    oracleEyeOwned = 1; 
+                    totalShopPurchases++;
+                    checkBadges();
+                    saveGame(); 
+                    std::cout << "Purchased!" << std::endl; 
+                } else {
+                    std::cout << "Not enough points!" << std::endl;
+                }
+                smartWait(1000);
+            }
+        }
+        else if (choice == 8) {
+            int streakCost = 600 * (1 << streakGuardUses);
+            std::cout << T_TITLE << "ITEM:" << T_RESET << " " << T_SPECIAL << "Streak Guard" << T_RESET << std::endl; 
+            std::cout << T_TITLE << "COST:" << T_RESET << " " << T_ACCENT << "$" << streakCost << T_RESET << std::endl;
+            std::cout << "------------------------------------" << std::endl;
+            std::cout << " If you lose, your win streak will not reset to zero." << std::endl;
+            std::cout << " Price doubles each time you buy this." << std::endl;
+            std::cout << "------------------------------------" << std::endl;
+            std::cout << "Purchase? [" << T_WIN << "Y" << T_RESET << "/" << T_LOSS << "N" << T_RESET << "]: ";
+            std::cin >> buyChoice;
+            std::cin.ignore(1000, '\n');
+            if (buyChoice == 'y' || buyChoice == 'Y') {
+                if (streakGuardOwned == 1) {
+                    std::cout << "Already owned!" << std::endl;
+                } else if (totalPoints >= streakCost) { 
+                    totalPoints -= streakCost; 
+                    streakGuardOwned = 1; 
+                    streakGuardUses++;
+                    totalShopPurchases++;
+                    checkBadges();
+                    saveGame(); 
+                    std::cout << "Purchased!" << std::endl; 
+                } else {
+                    std::cout << "Not enough points!" << std::endl;
+                }
+                smartWait(1000);
+            }
+        }
+        else if (choice == 9) {
+            std::cout << T_TITLE << "ITEM:" << T_RESET << " " << T_SPECIAL << "Golden Thread" << T_RESET << std::endl; 
+            std::cout << T_TITLE << "COST:" << T_RESET << " " << T_ACCENT << "$5000" << T_RESET << std::endl;
+            std::cout << "------------------------------------" << std::endl;
+            std::cout << " Prevents save deletion if points hit $0. Resets to $100." << std::endl;
+            std::cout << "------------------------------------" << std::endl;
+            std::cout << "Purchase? [" << T_WIN << "Y" << T_RESET << "/" << T_LOSS << "N" << T_RESET << "]: ";
+            std::cin >> buyChoice;
+            std::cin.ignore(1000, '\n');
+            if (buyChoice == 'y' || buyChoice == 'Y') {
+                if (goldenThreadOwned == 1) {
+                    std::cout << "Already owned!" << std::endl;
+                } else if (totalPoints >= 5000) { 
+                    totalPoints -= 5000; 
+                    goldenThreadOwned = 1; 
+                    totalShopPurchases++;
+                    checkBadges();
+                    saveGame(); 
+                    std::cout << "Purchased!" << std::endl; 
+                } else {
+                    std::cout << "Not enough points!" << std::endl;
+                }
+                smartWait(1000);
+            }
+        }
+        else if (choice == 10) {
+            std::cout << T_TITLE << "ITEM:" << T_RESET << " " << T_SPECIAL << "The Blindfold" << T_RESET << std::endl; 
+            std::cout << T_TITLE << "COST:" << T_RESET << " " << T_ACCENT << "$300" << T_RESET << std::endl;
+            std::cout << "------------------------------------" << std::endl;
+            std::cout << " Removes Higher/Lower hints. Reward is Quadrupled (4x)." << std::endl;
+            std::cout << " Cannot be used on Easy difficulty." << std::endl;
+            std::cout << "------------------------------------" << std::endl;
+            std::cout << "Purchase? [" << T_WIN << "Y" << T_RESET << "/" << T_LOSS << "N" << T_RESET << "]: ";
+            std::cin >> buyChoice;
+            std::cin.ignore(1000, '\n');
+            if (buyChoice == 'y' || buyChoice == 'Y') {
+                if (blindfoldOwned == 1) {
+                    std::cout << "Already owned!" << std::endl;
+                } else if (totalPoints >= 300) { 
+                    totalPoints -= 300; 
+                    blindfoldOwned = 1; 
+                    totalShopPurchases++;
+                    checkBadges();
+                    saveGame(); 
+                    std::cout << "Purchased!" << std::endl; 
+                } else {
+                    std::cout << "Not enough points!" << std::endl;
+                }
+                smartWait(1000);
+            }
         }
     }
 }
 
 void viewStats() {
     clear();
-    std::cout << "\033[1;37mPLAYER STATS\033[0m \033[33m//\033[0m \033[32m" << playerName << "\033[0m" << std::endl;
     std::cout << "------------------------------------" << std::endl;
-    std::cout << "Points: \033[33m" << totalPoints << "\033[0m" << std::endl;
-    std::cout << "Wins:   \033[1;32m" << totalWins << "\033[0m" << std::endl;
-    std::cout << "Losses: \033[1;31m" << totalLoss << "\033[0m" << std::endl;
-    std::cout << "Rounds: \033[36m" << roundsPlayed << "\033[0m" << std::endl;
-    std::cout << "Current Streak: \033[35m" << currentStreak << "\033[0m" << std::endl;
-    std::cout << "Best Streak: \033[35m" << bestStreak << "\033[0m" << std::endl;
-    std::cout << "Jackpots: \033[33m" << jackpotsTriggered << "\033[0m" << std::endl;
-    std::cout << "Reward Paid: \033[32m" << totalRewardPaid << "\033[0m" << std::endl;
-    std::cout << "Highest Wager: \033[31m" << highestSingleWager << "\033[0m" << std::endl;
+    std::cout << T_TITLE << "PLAYER STATS" << T_RESET << " // " << T_USER << playerName << T_RESET << std::endl;
+    std::cout << "------------------------------------" << std::endl;
+    std::cout << "Points: " << T_PRICE << totalPoints << T_RESET << std::endl;
+    std::cout << "Wins:   " << T_WIN << totalWins << T_RESET << std::endl;
+    std::cout << "Losses: " << T_LOSS << totalLoss << T_RESET << std::endl;
+    std::cout << "Rounds Played: " << T_INFO << roundsPlayed << T_RESET << std::endl;
+    std::cout << "Current Streak: " << T_SPECIAL << currentStreak << T_RESET << std::endl;
+    std::cout << "Best Streak: " << T_SPECIAL << bestStreak << T_RESET << std::endl;
+    std::cout << "Jackpots: " << T_PRICE << jackpotsTriggered << T_RESET << std::endl;
+    std::cout << "------------------------------------" << std::endl;
+    std::cout << "Total Reward Paid: " << T_WIN << "$" << totalRewardPaid << T_RESET << std::endl;
+    std::cout << "Total Points Lost: " << T_LOSS << "$" << totalPointsLost << T_RESET << std::endl;
+    std::cout << "Highest Wager: " << T_LOSS << "$" << highestSingleWager << T_RESET << std::endl;
+    std::cout << "Biggest Single Loss: " << T_LOSS << "$" << biggestSingleLoss << T_RESET << std::endl;
+    std::cout << "------------------------------------" << std::endl;
+    std::cout << "Total Guesses: " << T_INFO << totalGuessesMade << T_RESET << std::endl;
+    double avg = 0;
+    if (totalWins > 0) {
+        avg = (double)totalGuessesMade / totalWins;
+    }
+    std::cout << "Avg Guesses/Win: " << T_INFO << std::fixed << std::setprecision(2) << avg << T_RESET << std::endl;
     std::cout << "------------------------------------" << std::endl;
     std::cout << "Inventory: ";
     bool hasAnyItem = false;
-    if (extraLifeOwned) {
-        std::cout << "Extra Life";
-        hasAnyItem = true;
-    }
-    if (gamblingInsuranceOwned) {
-        if (hasAnyItem) std::cout << ", ";
-        std::cout << "Insurance";
-        hasAnyItem = true;
-    }
-    if (highRewardOwned) {
-        if (hasAnyItem) std::cout << ", ";
-        std::cout << "High Reward";
-        hasAnyItem = true;
-    }
-    if (safeBetShieldOwned) {
-        if (hasAnyItem) std::cout << ", ";
-        std::cout << "Shield";
-        hasAnyItem = true;
-    }
-    if (luckyCharmOwned) {
-        if (hasAnyItem) std::cout << ", ";
-        std::cout << "Lucky Charm";
-        hasAnyItem = true;
-    }
-    if (doubleDownOwned) {
-        if (hasAnyItem) std::cout << ", ";
-        std::cout << "Double Down";
-        hasAnyItem = true;
-    }
+    if (extraLifeOwned) { std::cout << T_SPECIAL << "Life" << T_RESET; hasAnyItem = true; }
+    if (gamblingInsuranceOwned) { std::cout << (hasAnyItem ? ", " : "") << T_SPECIAL << "Insurance" << T_RESET; hasAnyItem = true; }
+    if (highRewardOwned) { std::cout << (hasAnyItem ? ", " : "") << T_SPECIAL << "High Reward" << T_RESET; hasAnyItem = true; }
+    if (safeBetShieldOwned) { std::cout << (hasAnyItem ? ", " : "") << T_SPECIAL << "Shield" << T_RESET; hasAnyItem = true; }
+    if (luckyCharmOwned) { std::cout << (hasAnyItem ? ", " : "") << T_SPECIAL << "Charm" << T_RESET; hasAnyItem = true; }
+    if (doubleDownOwned) { std::cout << (hasAnyItem ? ", " : "") << T_SPECIAL << "Double" << T_RESET; hasAnyItem = true; }
+    if (oracleEyeOwned) { std::cout << (hasAnyItem ? ", " : "") << T_SPECIAL << "Oracle" << T_RESET; hasAnyItem = true; }
+    if (streakGuardOwned) { std::cout << (hasAnyItem ? ", " : "") << T_SPECIAL << "Streak Guard" << T_RESET; hasAnyItem = true; }
+    if (goldenThreadOwned) { std::cout << (hasAnyItem ? ", " : "") << T_SPECIAL << "Thread" << T_RESET; hasAnyItem = true; }
+    if (blindfoldOwned) { std::cout << (hasAnyItem ? ", " : "") << T_SPECIAL << "Blindfold" << T_RESET; hasAnyItem = true; }
     if (!hasAnyItem) std::cout << "Empty";
     std::cout << std::endl;
     std::cout << "------------------------------------" << std::endl;
@@ -617,7 +906,6 @@ void viewStats() {
     _getch();
 }
 
-// --- Gameplay ---
 void playGame() {
     std::srand(std::time(0));
     int range = 10;
@@ -625,76 +913,111 @@ void playGame() {
     int guess = 0;
     int lives = 5;
     int difficulty = chooseDifficulty();
-    int wager = 0;
-    int minWager = totalPoints * 0.15;
-    if (minWager <= 0) minWager = totalPoints;
-    if (difficulty == 1) lives = 7;
-    else if (difficulty == 2) lives = 4;
-    else if (difficulty == 3) lives = 3;
-    else if (difficulty == 4) lives = 5;
-    else if (difficulty == 5) return;
+    if (difficulty == 5) {
+        return;
+    }
+
+    if (difficulty == 1) {
+        lives = 7;
+    } else if (difficulty == 2) {
+        lives = 4;
+    } else if (difficulty == 3) {
+        lives = 3;
+    } else if (difficulty == 4) {
+        lives = 5;
+    }
+
     if (difficulty > 1 && extraLifeOwned == 1) {
         lives++;
         extraLifeOwned = 0;
-        saveGame();
-        std::cout << "\033[35mExtra life applied!\033[0m" << std::endl;
+        std::cout << T_SPECIAL << "Extra life applied!" << T_RESET << std::endl;
+    }
+
+    int wager = 0;
+    int minWager = totalPoints * 0.15;
+    if (minWager <= 0) {
+        minWager = totalPoints;
     }
 
     if (difficulty == 1) {
         wager = 0;
         std::cout << "Easy mode: No wagering." << std::endl;
-        wait(1000);
+        smartWait(1000);
     } else {
-        std::cout << "\033[1;37mPoints: \033[33m$" << totalPoints << "\033[0m (Min: $" << minWager << ")" << std::endl;
+        std::cout << T_TITLE << "Points: " << T_PRICE << "$" << totalPoints << T_RESET << " (Min: $" << minWager << ")" << std::endl;
         std::cout << "Wager: $";
         std::cin >> wager;
 
         if (wager > totalPoints || wager < minWager) {
             wager = totalPoints;
-            std::cout << "Invalid! Going all-in: \033[31m$" << wager << "\033[0m" << std::endl;
-            wait(1500);
+            std::cout << T_LOSS << "Invalid! Going all-in: $" << wager << T_RESET << std::endl;
+            smartWait(1500);
         }
     }
 
-    if (wager > 0) {
-        highestSingleWager = std::max(highestSingleWager, wager);
+    highestSingleWager = std::max(highestSingleWager, wager);
+    roundsPlayed++;
+
+    std::string status = "I'm thinking of a number between 1 and 10.";
+
+    if (oracleEyeOwned == 1) {
+        if (secretNum % 2 == 0) {
+            status = "The Oracle senses an " + T_INFO + "EVEN" + T_RESET + " number.";
+        } else {
+            status = "The Oracle senses an " + T_INFO + "ODD" + T_RESET + " number.";
+        }
+        oracleEyeOwned = 0;
     }
 
-    roundsPlayed++;
-    std::string status = "I'm thinking of a number between 1 and 10.";
+    bool blindfoldActive = false;
+    if (blindfoldOwned == 1) {
+        if (difficulty == 1) {
+            std::cout << "Blindfold cannot be used on Easy!" << std::endl;
+            smartWait(1000);
+        } else {
+            blindfoldActive = true;
+            blindfoldOwned = 0;
+            std::cout << T_LOSS << "Blindfold active: No hints, 4x Reward!" << T_RESET << std::endl;
+            smartWait(1500);
+        }
+    }
+
     int attemptCount = 1;
     while (lives > 0) {
         clear();
-        std::cout << "\033[1;37mGAMEPLAY\033[0m \033[33m//\033[0m \033[32m" << playerName << "\033[0m | Lives: \033[1;31m" << lives << "\033[0m" << std::endl;
+        std::cout << "------------------------------------" << std::endl;
+        std::cout << T_TITLE << "GAMEPLAY" << T_RESET << " // " << T_USER << playerName << T_RESET << " | Lives: " << T_LOSS << lives << T_RESET << std::endl;
         std::cout << "------------------------------------" << std::endl;
         std::cout << "Status: " << status << std::endl;
         std::cout << "------------------------------------" << std::endl;
-        std::cout << "Enter your guess \033[32m>\033[0m ";
+        std::cout << "Enter your guess " << T_WIN << "> " << T_RESET;
         std::cin >> guess;
 
-        bool guessedCorrectly = (guess == secretNum);
-        if (attemptCount == 1 && guessedCorrectly) {
-            firstTryWins++;
-            checkBadges();
-        }
+        totalGuessesMade++;
 
-        if (guessedCorrectly) {
+        if (guess == secretNum) {
+            if (attemptCount == 1) {
+                firstTryWins++;
+            }
+            if (lives == 1) {
+                markBadgeAsUnlocked(badgeClutch, "Clutch");
+            }
+            
             totalWins++;
             currentStreak++;
             bestStreak = std::max(bestStreak, currentStreak);
-            clear();
+            
             double rewardMult = (difficulty == 3) ? 0.55 : 0.20;
             int winAmt = std::round(wager * rewardMult);
+            
             if (highRewardOwned == 1) {
                 winAmt = std::round(winAmt * 1.35);
                 highRewardOwned = 0;
                 std::cout << "Bonus applied! ";
             }
-            bool usedLuckyCharm = false;
             if (luckyCharmOwned == 1) {
                 winAmt = std::round(winAmt * 1.10);
                 luckyCharmOwned = 0;
-                usedLuckyCharm = true;
                 std::cout << "Lucky Charm activated! ";
             }
             if (doubleDownOwned == 1) {
@@ -702,91 +1025,100 @@ void playGame() {
                 doubleDownOwned = 0;
                 std::cout << "Double Down triggered! ";
             }
-            bool jackpot = (std::rand() % 10 == 0);
-            if (usedLuckyCharm && !jackpot) {
-                jackpot = (std::rand() % 20 == 0);
+            if (blindfoldActive) {
+                winAmt *= 4;
             }
-            if (jackpot) {
+            if (std::rand() % 10 == 0) {
                 winAmt *= 2;
                 jackpotsTriggered++;
             }
+            
             totalPoints += winAmt;
             totalRewardPaid += winAmt;
             if (difficulty == 4) {
                 extremeWins++;
             }
+            
             checkBadges();
-            clear();
-            std::cout << "\033[1;37mROUND RESULT\033[0m \033[33m//\033[0m \033[32mWIN\033[0m" << std::endl;
-            std::cout << "------------------------------------" << std::endl;
-            std::cout << "Reward: \033[32m+" << winAmt << " points\033[0m" << std::endl;
-            std::cout << "Lives left: \033[35m" << lives << "\033[0m" << std::endl;
-            std::cout << "Streak: \033[36m" << currentStreak << "\033[0m" << std::endl;
-            if (jackpot) {
-                std::cout << "\033[33mJACKPOT! Double reward!\033[0m" << std::endl;
-            }
-            std::cout << "Total points: \033[33m" << totalPoints << "\033[0m" << std::endl;
-            std::cout << "------------------------------------" << std::endl;
-            std::cout << "Progress is saved." << std::endl;
-            std::cout << "Press ENTER to continue";
             saveGame();
+            clear();
+            std::cout << "------------------------------------" << std::endl;
+            std::cout << T_WIN << "WIN! +" << winAmt << " points" << T_RESET << std::endl;
+            std::cout << "Total points: " << T_PRICE << totalPoints << T_RESET << std::endl;
+            std::cout << "------------------------------------" << std::endl;
+            std::cout << "Press ENTER to continue";
             waitForEnter();
             return;
         } else {
             attemptCount++;
             lives--;
             if (difficulty == 4) {
-                status = "Number shifted 3 and range removed.";
                 secretNum = newNum(secretNum, guess);
+                status = "The number shifted!";
             } else {
-                status = (guess > secretNum) ? "\033[31mLower!\033[0m" : "\033[31mHigher!\033[0m";
+                if (blindfoldActive) {
+                    status = T_LOSS + "Wrong!" + T_RESET;
+                } else {
+                    status = (guess > secretNum) ? T_LOSS + "Lower!" + T_RESET : T_LOSS + "Higher!" + T_RESET;
+                }
             }
         }
     }
 
     totalLoss++;
-    currentStreak = 0;
+    if (streakGuardOwned == 1) {
+        std::cout << T_EXTRA << "Streak Guard used: Streak saved!" << T_RESET << std::endl;
+        streakGuardOwned = 0;
+    } else {
+        currentStreak = 0;
+    }
+
     int lostAmt = wager;
     if (gamblingInsuranceOwned == 1) {
         lostAmt = std::round(wager * 0.90);
         gamblingInsuranceOwned = 0;
-        std::cout << "Insurance saved you 10%!" << std::endl;
     }
     if (safeBetShieldOwned == 1) {
         lostAmt = std::round(lostAmt * 0.5);
         safeBetShieldOwned = 0;
         safeBetShieldUses++;
-        std::cout << "Safe Bet Shield reduced the loss!" << std::endl;
     }
+    
     totalPoints -= lostAmt;
+    totalPointsLost += lostAmt;
+    biggestSingleLoss = std::max(biggestSingleLoss, lostAmt);
+
+    if (totalPoints <= 0 && goldenThreadOwned == 1) {
+        totalPoints = 100;
+        goldenThreadOwned = 0;
+        std::cout << T_ACCENT << "Golden Thread snapped! You revived with $100." << T_RESET << std::endl;
+    }
+
     checkBadges();
+    saveGame();
     clear();
-    std::cout << "\033[1;37mROUND RESULT\033[0m \033[33m//\033[0m \033[31mLOSS\033[0m" << std::endl;
     std::cout << "------------------------------------" << std::endl;
-    std::cout << "Penalty: \033[31m-" << lostAmt << " points\033[0m" << std::endl;
-    std::cout << "Streak ended: \033[35m0\033[0m" << std::endl;
-    std::cout << "The number was: \033[36m" << secretNum << "\033[0m" << std::endl;
-    std::cout << "Total points: \033[33m" << totalPoints << "\033[0m" << std::endl;
+    std::cout << T_LOSS << "LOSS! -" << lostAmt << " points" << T_RESET << std::endl;
+    std::cout << "The number was: " << T_INFO << secretNum << T_RESET << std::endl;
+    std::cout << "Total points: " << T_PRICE << totalPoints << T_RESET << std::endl;
     std::cout << "------------------------------------" << std::endl;
     std::cout << "Press ENTER to continue";
-    saveGame();
     waitForEnter();
+
     if (totalPoints <= 0) {
         std::cout << "Bankrupt! Save deleted." << std::endl;
         remove("save.txt");
         exit(0);
     }
-    wait(3000);
 }
 
-// --- Main Menu ---
 int main() {
     clear();
+    std::srand(std::time(0));
     std::ifstream checkFile("save.txt");
     if (!checkFile.is_open()) {
         std::cout << "Please choose a username: ";
-        std::cin >> playerName;
-        std::cin.ignore(1000, '\n');
+        std::getline(std::cin, playerName);
         saveGame();
     } else {
         checkFile.close();
@@ -794,49 +1126,60 @@ int main() {
     }
 
     int selected = 1;
-
     while (true) {
         clear();
         bool choiceMade = false;
         while (!choiceMade) {
             resetCursor();
-            std::cout << "\033[1;37mSUPER GAMBLING\033[0m \033[33m//\033[0m \033[36mV1.4\033[0m \033[33m//\033[0m \033[32m" << playerName << "\033[0m" << std::endl;
             std::cout << "------------------------------------" << std::endl;
-            std::cout << "\033[32m[" << (selected == 1 ? "*" : "1") << "]\033[0m Start Game" << std::endl;
-            std::cout << "\033[36m[" << (selected == 2 ? "*" : "2") << "]\033[0m Open Store" << std::endl;
-            std::cout << "\033[33m[" << (selected == 3 ? "*" : "3") << "]\033[0m View Stats" << std::endl;
-            std::cout << "\033[35m[" << (selected == 4 ? "*" : "4") << "]\033[0m Badges" << std::endl;
-            std::cout << "\033[31m[" << (selected == 5 ? "*" : "5") << "]\033[0m Exit" << std::endl;
-
+            std::cout << T_TITLE << "SUPER GAMBLING" << T_RESET << " // " << T_INFO << "V1.5" << T_RESET << " // " << T_USER << playerName << T_RESET << std::endl;
             std::cout << "------------------------------------" << std::endl;
-            std::cout << "Use Arrows to move, Enter to select" << std::endl;
+            std::cout << T_WIN << "[" << (selected == 1 ? "*" : "1") << "]" << T_RESET << " Start Game" << std::endl;
+            std::cout << T_INFO << "[" << (selected == 2 ? "*" : "2") << "]" << T_RESET << " Open Store" << std::endl;
+            std::cout << T_PRICE << "[" << (selected == 3 ? "*" : "3") << "]" << T_RESET << " View Stats" << std::endl;
+            std::cout << T_SPECIAL << "[" << (selected == 4 ? "*" : "4") << "]" << T_RESET << " Badges" << std::endl;
+            std::cout << T_EXTRA << "[" << (selected == 5 ? "*" : "5") << "]" << T_RESET << " Settings" << std::endl;
+            std::cout << T_LOSS << "[" << (selected == 6 ? "*" : "6") << "]" << T_RESET << " Exit" << std::endl;
+            std::cout << "------------------------------------" << std::endl;
 
             int input = _getch();
-
             if (input == 224 || input == 27) {
                 int arrow = _getch();
-                if (input == 27 && arrow == 91) arrow = _getch();
-
-                if (arrow == 72 || arrow == 'A') {
-                    if (selected > 1) selected--;
-                    else selected = 5;
+                if (input == 27 && arrow == 91) {
+                    arrow = _getch();
                 }
-                else if (arrow == 80 || arrow == 'B') { // DOWN
-                    if (selected < 5) selected++;
-                    else selected = 1;
+                if (arrow == 72 || arrow == 'A') { 
+                    if (selected > 1) {
+                        selected--;
+                    } else {
+                        selected = 6;
+                    }
                 }
-            }
-            else if (input == 13 || input == 10) {
+                else if (arrow == 80 || arrow == 'B') { 
+                    if (selected < 6) {
+                        selected++;
+                    } else {
+                        selected = 1;
+                    }
+                }
+            } else if (input == 13 || input == 10) {
                 choiceMade = true;
             }
         }
 
-        if (selected == 1) playGame();
-        else if (selected == 2) openStore();
-        else if (selected == 3) viewStats();
-        else if (selected == 4) viewBadges();
-        else if (selected == 5) break;
+        if (selected == 1) {
+            playGame();
+        } else if (selected == 2) {
+            openStore();
+        } else if (selected == 3) {
+            viewStats();
+        } else if (selected == 4) {
+            viewBadges();
+        } else if (selected == 5) {
+            openSettings();
+        } else if (selected == 6) {
+            break;
+        }
     }
-
     return 0;
 }
